@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import {
-  Shield, AlertTriangle, Zap, Users,
-  Play, Pause, Bell, ChevronDown, Eye, Radio, RotateCcw,
+  Shield, AlertTriangle,
+  Play, Pause, Bell, ChevronDown, Eye, RotateCcw,
   CheckCircle2,
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
-import { getThreatLevelLabel, formatPopulation } from '../../utils/helpers';
+import { getThreatLevelLabel } from '../../utils/helpers';
 import { SIMULATION_SCENARIOS } from '../../data/mockData';
 
 export function TopBar() {
   const {
     viewMode, setViewMode,
-    threatIndex, totalPopulationAtRisk, activeOutageCount,
-    incidents, simulation,
+    threatIndex,
+    simulation,
     setSimulationPlaying, setSimulationSpeed, loadScenario,
     tickSimulation, rewindSimulation, seekSimulation,
     setAlertModalOpen,
@@ -54,9 +54,6 @@ export function TopBar() {
   }, [simulation.isPlaying, tickSimulation]);
 
   const threatLevel = getThreatLevelLabel(threatIndex);
-  const activeCount = incidents.filter(
-    (i) => i.status === 'ACTIVE' || i.status === 'EVALUATING'
-  ).length;
 
   return (
     <header
@@ -106,14 +103,6 @@ export function TopBar() {
           {threatIndex}
         </span>
         <span style={{ fontSize: '10px', color: threatLevel.color, fontWeight: 700 }}>{threatLevel.label}</span>
-      </div>
-
-      {/* Quick Stats */}
-      <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginLeft: '4px' }}>
-        <MiniStat icon={<AlertTriangle size={11} />} value={`${activeCount} active`} color="#EF4444" />
-        <MiniStat icon={<Users size={11} />} value={`${formatPopulation(totalPopulationAtRisk)} at risk`} color="#F59E0B" />
-        <MiniStat icon={<Zap size={11} />} value={`${activeOutageCount} outages`} color="#8B5CF6" />
-        <MiniStat icon={<Radio size={11} className="led-blink" />} value="8 units" color="#10B981" />
       </div>
 
       {/* Dynamic Telemetry Pill when simulation is active */}
@@ -556,15 +545,6 @@ export function TopBar() {
 
 function Sep() {
   return <div style={{ width: '1px', height: '24px', background: 'rgba(51,65,85,0.7)', flexShrink: 0 }} />;
-}
-
-function MiniStat({ icon, value, color }: { icon: React.ReactNode; value: string; color: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-      <span style={{ color }}>{icon}</span>
-      <span style={{ fontSize: '11px', color: '#94A3B8', fontFamily: 'var(--font-mono)' }}>{value}</span>
-    </div>
-  );
 }
 
 function ViewBtn({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
