@@ -43,6 +43,7 @@ export interface IncidentRecord {
     roadClosureLengthKm?: number;
     gasConcentrationPpm?: number;
     affectedWards?: string[];
+    [key: string]: any;
   };
 }
 
@@ -93,13 +94,45 @@ export interface CitizenReport {
   reportedBy: string;
 }
 
+export interface SimulationPhase {
+  phaseIndex: number;
+  phaseTitle: string;
+  triggerSeconds: number;
+  threatIndex: number;
+  accuracyScore?: number;
+  probabilityScore?: number;
+  estimatedTime?: string;
+  statusMessage: string;
+  reportsCount: number;
+  incidents: IncidentRecord[];
+  citizenReports: CitizenReport[];
+  tickerEvents: LiveTickerEvent[];
+}
+
 export interface SimulationScenario {
-  id: string;
+  id: 'peaceful' | 'grid_cascade' | 'earthquake_cascade';
   name: string;
+  badge: string;
+  tagline: string;
   description: string;
   icon: string;
-  incidentIds: string[];
-  durationMinutes: number;
+  severity: 'CALM' | 'MODERATE' | 'CRITICAL';
+  durationSeconds: number;
+  phases: SimulationPhase[];
+}
+
+export interface SimulationState {
+  isPlaying: boolean;
+  speed: 1 | 2 | 5;
+  activeScenarioId: 'peaceful' | 'grid_cascade' | 'earthquake_cascade' | null;
+  elapsedSeconds: number;
+  currentPhaseIndex: number;
+  currentPhaseTitle: string;
+  statusMessage: string;
+  accuracyScore: number | null;
+  probabilityScore: number | null;
+  estimatedTimeWindow: string | null;
+  reportsCount: number;
 }
 
 export interface LiveTickerEvent {

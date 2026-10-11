@@ -143,6 +143,34 @@ function createShelterIcon(shelter: EmergencyShelter): L.DivIcon {
   });
 }
 
+function createCitizenReportIcon(category: string): L.DivIcon {
+  const iconEmoji =
+    category === 'NATURAL_DISASTER' ? '⚡' : category === 'CIVIC_UTILITY' ? '🔌' : '📍';
+  const color = category === 'NATURAL_DISASTER' ? '#F59E0B' : '#06B6D4';
+
+  return L.divIcon({
+    className: '',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -14],
+    html: `
+      <div style="position:relative;width:24px;height:24px;cursor:pointer;">
+        <div style="
+          position:absolute;inset:0;border-radius:50%;
+          background:${color};opacity:0.35;
+          animation:pulse-ring 2s ease-out infinite;
+        "></div>
+        <div style="
+          position:absolute;inset:3px;border-radius:50%;
+          background:#0B111D;border:1.5px solid ${color};
+          box-shadow:0 0 8px ${color};
+          display:flex;align-items:center;justify-content:center;font-size:10px;
+        ">${iconEmoji}</div>
+      </div>
+    `,
+  });
+}
+
 function createPlaceLabelIcon(place: DistrictPlace, basemap: BasemapStyle): L.DivIcon {
   const isCity = place.type === 'CITY';
   const isLight = basemap === 'voyager';
@@ -256,7 +284,7 @@ function MapController({ activeBasemapUrl, subdomains }: { activeBasemapUrl: str
 }
 
 export function MapEngine() {
-  const { incidents, selectedIncidentId, selectIncident, viewMode } = useStore();
+  const { incidents, selectedIncidentId, selectIncident, citizenReports, simulation, viewMode } = useStore();
   const [basemap, setBasemap] = useState<BasemapStyle>('dark');
   const activeTile = BASEMAP_TILES[basemap];
   const borderStyle = BORDER_STYLES[basemap];
@@ -424,6 +452,60 @@ export function MapEngine() {
             </Popup>
           </Marker>
         ))}
+
+        {/* Citizen Reports — Live Streamed During Simulations */}
+        {citizenReports.map((rep) => (
+          <Marker
+            key={rep.id}
+            position={[rep.location.lat, rep.location.lng]}
+            icon={createCitizenReportIcon(rep.category)}
+          >
+            <Popup>
+              <div style={{ minWidth: '190px' }}>
+                <div style={{ fontSize: '10px', color: '#06B6D4', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                  CITIZEN REPORT • [{rep.reportedAt}]
+                </div>
+                <div style={{ fontWeight: 700, fontSize: '12px', marginTop: '3px', color: '#F1F5F9' }}>
+                  {rep.title}
+                </div>
+                <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px', lineHeight: 1.3 }}>
+                  {rep.description}
+                </div>
+                <div style={{ fontSize: '10px', color: '#64748B', marginTop: '6px' }}>
+                  Logged by: {rep.reportedBy} ({rep.location.wardOrDistrict || 'Ghaziabad'})
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Seismic Early Warning Epicenter Waves (when earthquake simulation is active) */}
+        {simulation.activeScenarioId === 'earthquake_cascade' && (
+          <>
+            <Circle
+              center={[28.6385, 77.3698]}
+              radius={simulation.currentPhaseIndex >= 1 ? 9500 : 4500}
+              pathOptions={{
+                color: '#EF4444',
+                fillColor: '#EF4444',
+                fillOpacity: 0.08,
+                weight: 2,
+                dashArray: '8, 6',
+              }}
+            />
+            <Circle
+              center={[28.6385, 77.3698]}
+              radius={simulation.currentPhaseIndex >= 2 ? 14000 : 7000}
+              pathOptions={{
+                color: '#F59E0B',
+                fillColor: 'transparent',
+                weight: 1.5,
+                dashArray: '4, 4',
+                opacity: 0.6,
+              }}
+            />
+          </>
+        )}
       </MapContainer>
 
       {/* Legend — bottom right */}
