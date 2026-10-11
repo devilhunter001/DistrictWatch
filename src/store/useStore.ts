@@ -63,6 +63,7 @@ interface DistrictWatchStore {
   loadScenario: (scenarioId: 'peaceful' | 'grid_cascade' | 'earthquake_cascade') => void;
   tickSimulation: () => void;
   rewindSimulation: () => void;
+  seekSimulation: (seconds: number) => void;
 
   // Derived
   threatIndex: number;
@@ -331,6 +332,39 @@ export const useStore = create<DistrictWatchStore>((set) => ({
           reportsCount: bumpReports,
           accuracyScore: bumpAccuracy,
         },
+      };
+    }),
+  seekSimulation: (seconds: number) =>
+    set((state) => {
+      if (!state.simulation.activeScenarioId) return state;
+      const scenario = SIMULATION_SCENARIOS.find((s) => s.id === state.simulation.activeScenarioId);
+      if (!scenario) return state;
+
+      const clamped = Math.max(0, Math.min(scenario.durationSeconds, seconds));
+      const eligiblePhases = scenario.phases.filter((p) => clamped >= p.triggerSeconds);
+      const targetPhase = eligiblePhases[eligiblePhases.length - 1] || scenario.phases[0];
+
+      return {
+        simulation: {
+          ...state.simulation,
+          elapsedSeconds: clamped,
+          currentPhaseIndex: targetPhase.phaseIndex,
+          currentPhaseTitle: targetPhase.phaseTitle,
+          statusMessage: targetPhase.statusMessage,
+          accuracyScore: targetPhase.accuracyScore ?? null,
+          probabilityScore: targetPhase.probabilityScore ?? null,
+          estimatedTimeWindow: targetPhase.estimatedTime ?? null,
+          reportsCount: targetPhase.reportsCount,
+        },
+        incidents: targetPhase.incidents,
+        citizenReports: [...targetPhase.citizenReports, ...state.citizenReports].slice(0, 25),
+        tickerEvents: [...targetPhase.tickerEvents, ...state.tickerEvents].slice(0, 50),
+        threatIndex: targetPhase.threatIndex,
+        totalPopulationAtRisk: getTotalPopulationAtRisk(targetPhase.incidents),
+        activeOutageCount: targetPhase.incidents.filter(
+          (i) => i.category === 'CIVIC_UTILITY' && (i.status === 'ACTIVE' || i.status === 'EVALUATING')
+        ).length,
+        selectedIncidentId: targetPhase.incidents[0]?.id || state.selectedIncidentId,
       };
     }),
 

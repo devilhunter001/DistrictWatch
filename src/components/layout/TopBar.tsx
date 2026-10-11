@@ -14,12 +14,30 @@ export function TopBar() {
     threatIndex, totalPopulationAtRisk, activeOutageCount,
     incidents, simulation,
     setSimulationPlaying, setSimulationSpeed, loadScenario,
-    tickSimulation, rewindSimulation,
+    tickSimulation, rewindSimulation, seekSimulation,
     setAlertModalOpen,
   } = useStore();
 
   const [time, setTime] = useState(new Date());
   const [showScenarios, setShowScenarios] = useState(false);
+
+  const activeScenario = SIMULATION_SCENARIOS.find((s) => s.id === simulation.activeScenarioId);
+  const duration = activeScenario?.durationSeconds || 45;
+  const progressPct = Math.min(100, Math.max(0, (simulation.elapsedSeconds / duration) * 100));
+
+  const formatSec = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+    const targetSeconds = Math.round(ratio * duration);
+    seekSimulation(targetSeconds);
+  };
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -205,6 +223,115 @@ export function TopBar() {
             {s}x
           </button>
         ))}
+
+        <div style={{ width: '1px', height: '14px', background: 'var(--border-subtle)' }} />
+
+        {/* Playhead Timeline Scrubber */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px',
+        }}>
+          {/* Scrubber Track */}
+          <div
+            onClick={handleTrackClick}
+            title={simulation.activeScenarioId ? `Seek Timeline: ${formatSec(simulation.elapsedSeconds)} / ${formatSec(duration)} (Click anywhere to jump)` : 'Select a simulation to seek'}
+            style={{
+              width: '100px',
+              height: '6px',
+              background: 'rgba(255, 255, 255, 0.08)',
+              borderRadius: '9999px',
+              position: 'relative',
+              cursor: simulation.activeScenarioId ? 'pointer' : 'default',
+              userSelect: 'none',
+              overflow: 'visible',
+            }}
+          >
+            {/* Phase tick markers */}
+            {activeScenario?.phases.map((ph, idx) => {
+              if (idx === 0) return null;
+              const tickPct = (ph.triggerSeconds / duration) * 100;
+              return (
+                <div
+                  key={ph.phaseIndex}
+                  style={{
+                    position: 'absolute',
+                    left: `${tickPct}%`,
+                    top: '-1px',
+                    width: '2px',
+                    height: '8px',
+                    background: 'rgba(255, 255, 255, 0.3)',
+                    borderRadius: '1px',
+                    zIndex: 2,
+                    pointerEvents: 'none',
+                  }}
+                  title={ph.phaseTitle}
+                />
+              );
+            })}
+
+            {/* Progress Fill */}
+            <div
+              style={{
+                width: `${progressPct}%`,
+                height: '100%',
+                borderRadius: '9999px',
+                background: simulation.activeScenarioId === 'earthquake_cascade'
+                  ? 'linear-gradient(90deg, #F59E0B, #EF4444)'
+                  : simulation.activeScenarioId === 'grid_cascade'
+                  ? 'linear-gradient(90deg, #06B6D4, #F59E0B)'
+                  : 'linear-gradient(90deg, #06B6D4, #10B981)',
+                boxShadow: `0 0 8px ${
+                  simulation.activeScenarioId === 'earthquake_cascade'
+                    ? 'rgba(239,68,68,0.5)'
+                    : simulation.activeScenarioId === 'grid_cascade'
+                    ? 'rgba(245,158,11,0.5)'
+                    : 'rgba(16,185,129,0.5)'
+                }`,
+                transition: simulation.isPlaying ? 'width 0.2s linear' : 'width 0.1s ease',
+              }}
+            />
+
+            {/* Glowing Playhead Thumb */}
+            <div
+              style={{
+                position: 'absolute',
+                left: `${progressPct}%`,
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                background: '#FFFFFF',
+                border: `2px solid ${
+                  simulation.activeScenarioId === 'earthquake_cascade'
+                    ? '#EF4444'
+                    : simulation.activeScenarioId === 'grid_cascade'
+                    ? '#F59E0B'
+                    : '#10B981'
+                }`,
+                boxShadow: `0 0 8px ${
+                  simulation.activeScenarioId === 'earthquake_cascade'
+                    ? '#EF4444'
+                    : simulation.activeScenarioId === 'grid_cascade'
+                    ? '#F59E0B'
+                    : '#10B981'
+                }, 0 0 2px #FFFFFF`,
+                zIndex: 3,
+                transition: simulation.isPlaying ? 'left 0.2s linear' : 'left 0.1s ease',
+              }}
+            />
+          </div>
+
+          {/* Time Readout */}
+          <span style={{
+            fontSize: '10px',
+            fontFamily: 'var(--font-mono)',
+            color: '#94A3B8',
+            minWidth: '58px',
+            letterSpacing: '-0.2px',
+          }}>
+            {formatSec(simulation.elapsedSeconds)}<span style={{ color: '#475569' }}>/</span>{formatSec(duration)}
+          </span>
+        </div>
 
         <div style={{ width: '1px', height: '14px', background: 'var(--border-subtle)' }} />
 
@@ -396,6 +523,33 @@ export function TopBar() {
           IST
         </div>
       </div>
+
+      {/* Ambient bottom playhead line */}
+      {simulation.activeScenarioId && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: `${progressPct}%`,
+            height: '2px',
+            background: simulation.activeScenarioId === 'earthquake_cascade'
+              ? 'linear-gradient(90deg, transparent, #F59E0B 40%, #EF4444)'
+              : simulation.activeScenarioId === 'grid_cascade'
+              ? 'linear-gradient(90deg, transparent, #06B6D4 40%, #F59E0B)'
+              : 'linear-gradient(90deg, transparent, #06B6D4 40%, #10B981)',
+            boxShadow: `0 0 8px ${
+              simulation.activeScenarioId === 'earthquake_cascade'
+                ? '#EF4444'
+                : simulation.activeScenarioId === 'grid_cascade'
+                ? '#F59E0B'
+                : '#10B981'
+            }`,
+            transition: simulation.isPlaying ? 'width 0.2s linear' : 'width 0.15s ease',
+            zIndex: 10,
+          }}
+        />
+      )}
     </header>
   );
 }
