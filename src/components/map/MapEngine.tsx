@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, Fragment } from 'react';
 import { MapContainer, TileLayer, Circle, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -247,7 +247,12 @@ const SCENARIO_CAMERA_STOPS: Record<
 };
 
 function MapController({ activeBasemapUrl, subdomains }: { activeBasemapUrl: string; subdomains?: string }) {
-  const { selectedIncidentId, incidents, isSidebarOpen, simulation } = useStore();
+  const selectedIncidentId = useStore((s) => s.selectedIncidentId);
+  const incidents = useStore((s) => s.incidents);
+  const isSidebarOpen = useStore((s) => s.isSidebarOpen);
+  const activeScenarioId = useStore((s) => s.simulation.activeScenarioId);
+  const currentPhaseIndex = useStore((s) => s.simulation.currentPhaseIndex);
+  const isAtStart = useStore((s) => s.simulation.elapsedSeconds === 0);
   const map = useMap();
   const lastPhaseKeyRef = useRef<string | null>(null);
   const lastSelectedIdRef = useRef<string | null>(null);
@@ -261,15 +266,15 @@ function MapController({ activeBasemapUrl, subdomains }: { activeBasemapUrl: str
 
   // Choreographed Cinematic Camera for Simulations: starts close on origin, zooms out as disruptions spread
   useEffect(() => {
-    if (!simulation.activeScenarioId) return;
+    if (!activeScenarioId) return;
 
-    const phaseKey = `${simulation.activeScenarioId}_p${simulation.currentPhaseIndex}_s${simulation.elapsedSeconds === 0 ? 'init' : 'run'}`;
+    const phaseKey = `${activeScenarioId}_p${currentPhaseIndex}_s${isAtStart ? 'init' : 'run'}`;
 
     if (lastPhaseKeyRef.current !== phaseKey) {
       lastPhaseKeyRef.current = phaseKey;
 
-      const scenarioStops = SCENARIO_CAMERA_STOPS[simulation.activeScenarioId];
-      const cameraTarget = scenarioStops?.[simulation.currentPhaseIndex] || scenarioStops?.[0];
+      const scenarioStops = SCENARIO_CAMERA_STOPS[activeScenarioId];
+      const cameraTarget = scenarioStops?.[currentPhaseIndex] || scenarioStops?.[0];
 
       if (cameraTarget) {
         map.flyTo(cameraTarget.center, cameraTarget.zoom, {
@@ -278,7 +283,7 @@ function MapController({ activeBasemapUrl, subdomains }: { activeBasemapUrl: str
         });
       }
     }
-  }, [simulation.activeScenarioId, simulation.currentPhaseIndex, simulation.elapsedSeconds, map]);
+  }, [activeScenarioId, currentPhaseIndex, isAtStart, map]);
 
   // Manual incident selection camera movement with radius-adaptive zoom
   useEffect(() => {
@@ -339,7 +344,13 @@ function MapController({ activeBasemapUrl, subdomains }: { activeBasemapUrl: str
 }
 
 export function MapEngine() {
-  const { incidents, selectedIncidentId, selectIncident, citizenReports, simulation, viewMode } = useStore();
+  const incidents = useStore((s) => s.incidents);
+  const selectedIncidentId = useStore((s) => s.selectedIncidentId);
+  const selectIncident = useStore((s) => s.selectIncident);
+  const citizenReports = useStore((s) => s.citizenReports);
+  const viewMode = useStore((s) => s.viewMode);
+  const activeScenarioId = useStore((s) => s.simulation.activeScenarioId);
+  const currentPhaseIndex = useStore((s) => s.simulation.currentPhaseIndex);
   const [basemap, setBasemap] = useState<BasemapStyle>('dark');
   const activeTile = BASEMAP_TILES[basemap];
   const borderStyle = BORDER_STYLES[basemap];
@@ -441,10 +452,11 @@ export function MapEngine() {
           const color = getSeverityColor(inc.severity);
           const isSelected = selectedIncidentId === inc.id;
           return (
-            <div key={inc.id}>
+            <Fragment key={inc.id}>
               <Circle
                 center={[inc.location.lat, inc.location.lng]}
                 radius={inc.radiusMeters}
+                renderer={svgRenderer}
                 pathOptions={{
                   color,
                   fillColor: color,
@@ -452,7 +464,8 @@ export function MapEngine() {
                   weight: isSelected ? 2 : 1,
                   opacity: isSelected ? 0.9 : 0.45,
                   dashArray: inc.status === 'CONTAINED' ? '6, 4' : undefined,
-                }}
+                  noClip: true,
+                } as any}
                 eventHandlers={{ click: () => selectIncident(inc.id) }}
               />
               <Marker
@@ -481,7 +494,7 @@ export function MapEngine() {
                   </div>
                 </Popup>
               </Marker>
-            </div>
+            </Fragment>
           );
         })}
 
@@ -535,29 +548,33 @@ export function MapEngine() {
         ))}
 
         {/* Seismic Early Warning Epicenter Waves (when earthquake simulation is active) */}
-        {simulation.activeScenarioId === 'earthquake_cascade' && (
+        {activeScenarioId === 'earthquake_cascade' && (
           <>
             <Circle
               center={[28.6385, 77.3698]}
-              radius={simulation.currentPhaseIndex >= 1 ? 9500 : 4500}
+              radius={currentPhaseIndex >= 1 ? 9500 : 4500}
+              renderer={svgRenderer}
               pathOptions={{
                 color: '#EF4444',
                 fillColor: '#EF4444',
                 fillOpacity: 0.08,
                 weight: 2,
                 dashArray: '8, 6',
-              }}
+                noClip: true,
+              } as any}
             />
             <Circle
               center={[28.6385, 77.3698]}
-              radius={simulation.currentPhaseIndex >= 2 ? 14000 : 7000}
+              radius={currentPhaseIndex >= 2 ? 14000 : 7000}
+              renderer={svgRenderer}
               pathOptions={{
                 color: '#F59E0B',
                 fillColor: 'transparent',
                 weight: 1.5,
                 dashArray: '4, 4',
                 opacity: 0.6,
-              }}
+                noClip: true,
+              } as any}
             />
           </>
         )}

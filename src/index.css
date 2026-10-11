@@ -71,6 +71,15 @@ body {
   100% { transform: scale(2.2); opacity: 0; }
 }
 
+/* ─── Leaflet Vector Rendering Stabilization ─────────────────────────────── */
+.leaflet-pane > svg path.leaflet-interactive {
+  vector-effect: non-scaling-stroke;
+}
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+  will-change: transform;
+}
+
 @keyframes radar-sweep {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
