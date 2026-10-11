@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Circle, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -227,9 +227,30 @@ function createPlaceLabelIcon(place: DistrictPlace, basemap: BasemapStyle): L.Di
   });
 }
 
+const SCENARIO_CAMERA_STOPS: Record<
+  string,
+  Record<number, { center: [number, number]; zoom: number; duration: number }>
+> = {
+  grid_cascade: {
+    0: { center: [28.6472, 77.3412], zoom: 15.2, duration: 1.8 }, // Close on Substation 4B in Vaishali Sector 1
+    1: { center: [28.6580, 77.3620], zoom: 13.2, duration: 2.2 }, // Zoom out as Kaushambi & Mohan Nagar traffic failures emerge
+    2: { center: [28.6580, 77.3650], zoom: 12.0, duration: 2.6 }, // Full Trans-Hindon cascade & Vasundhara water station
+  },
+  earthquake_cascade: {
+    0: { center: [28.6385, 77.3698], zoom: 14.8, duration: 1.8 }, // Close on Indirapuram epicenter
+    1: { center: [28.6520, 77.3600], zoom: 12.6, duration: 2.2 }, // Secondary foreshock & Sahibabad gas valves
+    2: { center: [28.6700, 77.4350], zoom: 10.8, duration: 3.0 }, // Pull out to full district: 32 siren towers & 6 relief shelters
+  },
+  peaceful: {
+    0: { center: [28.6692, 77.4450], zoom: 12.2, duration: 1.8 },
+  },
+};
+
 function MapController({ activeBasemapUrl, subdomains }: { activeBasemapUrl: string; subdomains?: string }) {
-  const { selectedIncidentId, incidents, isSidebarOpen } = useStore();
+  const { selectedIncidentId, incidents, isSidebarOpen, simulation } = useStore();
   const map = useMap();
+  const lastPhaseKeyRef = useRef<string | null>(null);
+  const lastSelectedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -238,10 +259,44 @@ function MapController({ activeBasemapUrl, subdomains }: { activeBasemapUrl: str
     return () => clearTimeout(timer);
   }, [map, isSidebarOpen]);
 
+  // Choreographed Cinematic Camera for Simulations: starts close on origin, zooms out as disruptions spread
   useEffect(() => {
-    if (selectedIncidentId) {
+    if (!simulation.activeScenarioId) return;
+
+    const phaseKey = `${simulation.activeScenarioId}_p${simulation.currentPhaseIndex}_s${simulation.elapsedSeconds === 0 ? 'init' : 'run'}`;
+
+    if (lastPhaseKeyRef.current !== phaseKey) {
+      lastPhaseKeyRef.current = phaseKey;
+
+      const scenarioStops = SCENARIO_CAMERA_STOPS[simulation.activeScenarioId];
+      const cameraTarget = scenarioStops?.[simulation.currentPhaseIndex] || scenarioStops?.[0];
+
+      if (cameraTarget) {
+        map.flyTo(cameraTarget.center, cameraTarget.zoom, {
+          duration: cameraTarget.duration,
+          easeLinearity: 0.25,
+        });
+      }
+    }
+  }, [simulation.activeScenarioId, simulation.currentPhaseIndex, simulation.elapsedSeconds, map]);
+
+  // Manual incident selection camera movement with radius-adaptive zoom
+  useEffect(() => {
+    if (!selectedIncidentId) return;
+
+    if (lastSelectedIdRef.current !== selectedIncidentId) {
+      lastSelectedIdRef.current = selectedIncidentId;
+
       const inc = incidents.find((i) => i.id === selectedIncidentId);
-      if (inc) map.flyTo([inc.location.lat, inc.location.lng], 14, { duration: 1.2 });
+      if (inc) {
+        let optimalZoom = 14;
+        if (inc.radiusMeters >= 8000) optimalZoom = 11.0;
+        else if (inc.radiusMeters >= 4000) optimalZoom = 12.0;
+        else if (inc.radiusMeters >= 2000) optimalZoom = 13.0;
+        else if (inc.radiusMeters <= 800) optimalZoom = 15.0;
+
+        map.flyTo([inc.location.lat, inc.location.lng], optimalZoom, { duration: 1.5 });
+      }
     }
   }, [selectedIncidentId, incidents, map]);
 
