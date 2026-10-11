@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import {
-  Shield, MapPin, Phone, Heart, Users, ChevronRight,
-  AlertTriangle, CheckCircle, Navigation, Flag
+  Shield, Phone,
+  CheckCircle, Navigation, Flag
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { MOCK_SHELTERS, DISTRICT_CENTER } from '../../data/mockData';
-import { getSeverityColor, formatPopulation } from '../../utils/helpers';
-import type { IncidentRecord } from '../../types';
+import { getSeverityColor } from '../../utils/helpers';
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -20,8 +19,8 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 export function CitizenPanel() {
   const { incidents, setCitizenReportModalOpen } = useStore();
-  const [userLat, setUserLat] = useState(DISTRICT_CENTER[0]);
-  const [userLng, setUserLng] = useState(DISTRICT_CENTER[1]);
+  const userLat = DISTRICT_CENTER[0];
+  const userLng = DISTRICT_CENTER[1];
   const [address, setAddress] = useState('Ghaziabad City Centre');
 
   const activeIncidents = incidents.filter(

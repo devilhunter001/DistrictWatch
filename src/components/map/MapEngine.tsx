@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Circle, Marker, Popup, Polygon, Polyline, useM
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useStore } from '../../store/useStore';
-import { DISTRICT_CENTER, MOCK_SHELTERS } from '../../data/mockData';
+import { MOCK_SHELTERS } from '../../data/mockData';
 import {
   GHAZIABAD_DISTRICT_BOUNDARY,
   GHAZIABAD_PLACES,
@@ -323,7 +323,7 @@ export function MapEngine() {
             lineJoin: 'round',
             noClip: true,
             smoothFactor: 0,
-          }}
+          } as any}
         />
         <Polygon
           positions={GHAZIABAD_DISTRICT_BOUNDARY}
@@ -339,7 +339,7 @@ export function MapEngine() {
             lineJoin: 'round',
             noClip: true,
             smoothFactor: 0,
-          }}
+          } as any}
         />
 
         {/* Ghaziabad Town & Locality Labels — Visible across all basemaps with adaptive theme */}

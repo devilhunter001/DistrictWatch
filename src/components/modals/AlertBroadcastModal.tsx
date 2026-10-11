@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Send, Radio, Mail, Bell, Volume2, CheckCircle, AlertTriangle, Users } from 'lucide-react';
+import { X, Send, Radio, Mail, Bell, Volume2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { formatPopulation } from '../../utils/helpers';
 

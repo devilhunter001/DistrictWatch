@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  AlertTriangle, Filter, Search, MapPin, Clock,
+  AlertTriangle, Filter, Search, MapPin,
   ChevronDown, ChevronUp, Plus, X, Users, Zap,
   Waves, Construction, ShieldAlert,
 } from 'lucide-react';
@@ -28,7 +28,7 @@ const SEVERITIES: { value: SeverityLevel; label: string; color: string }[] = [
 export function LeftSidebar() {
   const {
     incidents, selectedIncidentId, selectIncident,
-    filters, setFilterCategory, setFilterSeverity, toggleShowResolved,
+    filters, setFilterCategory, setFilterSeverity,
     viewMode, setNewIncidentModalOpen,
   } = useStore();
 

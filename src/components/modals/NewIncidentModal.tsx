@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Plus, MapPin } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { DISTRICT_CENTER } from '../../data/mockData';
 import type { IncidentCategory, SeverityLevel } from '../../types';

@@ -1,5 +1,5 @@
 import {
-  X, MapPin, Clock, Users, AlertTriangle, Radio,
+  X, MapPin, Clock, Users, Radio,
   Zap, ChevronRight, Send, CheckCircle, Shield,
   Thermometer, Waves, Wind,
 } from 'lucide-react';

@@ -83,7 +83,7 @@ interface DistrictWatchStore {
   setSidebarOpen: (open: boolean) => void;
 }
 
-export const useStore = create<DistrictWatchStore>((set, get) => ({
+export const useStore = create<DistrictWatchStore>((set) => ({
   viewMode: 'COMMAND',
   setViewMode: (mode) => set({ viewMode: mode }),
 

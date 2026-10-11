@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { Radio } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
